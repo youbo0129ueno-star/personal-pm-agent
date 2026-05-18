@@ -89,6 +89,14 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
     const repo = positional[0] === "github" || positional[0] === "local" ? positional[1] : parseOption(args, "--repo") ?? positional[0];
     return taskCommand(targetDir, "discover", { repo, source, scope: parseOption(args, "--scope") ?? "mine" });
   }
+  if (command === "/split-issue") {
+    const positional = args.filter((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--repo" && args[index - 1] !== "--number");
+    return taskCommand(targetDir, "split-issue", {
+      repo: parseOption(args, "--repo") ?? positional[0],
+      number: parseOption(args, "--number") ?? positional[1],
+      apply: args.includes("--apply")
+    });
+  }
   if (command === "/import") {
     return taskCommand(targetDir, "import", {
       number: args[0] && /^\d+$/.test(args[0]) ? args[0] : undefined,
@@ -130,6 +138,7 @@ function helpText(): string {
 /tasks [active|waiting|delegated|backlog|done]
 /discover [repo-id]     Discover local task candidates from linked repos
 /discover github [repo-id] [--scope mine|all]
+/split-issue <repo-id> <issue-number> [--apply]
 /import <number|id> [--list active]
 /add <title> [--list active] [--repo repo-id]
 /exit`;

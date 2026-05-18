@@ -108,6 +108,7 @@ Usage:
   pm-agent task [ledger-dir] list [--list active]
   pm-agent task [ledger-dir] discover [--source local|github] [--repo repo-id] [--scope mine|all]
   pm-agent task [ledger-dir] import --number 1 --list active
+  pm-agent task [ledger-dir] split-issue --repo repo-id --number 123 [--apply]
   pm-agent shell [ledger-dir]
 `);
 }
@@ -130,6 +131,7 @@ function parseArgs(args: string[]): {
     visibility?: "private" | "public";
     github?: boolean;
     open?: boolean;
+    apply?: boolean;
     port?: string;
     id?: string;
     number?: string;
@@ -150,6 +152,7 @@ function parseArgs(args: string[]): {
     visibility?: "private" | "public";
     github?: boolean;
     open?: boolean;
+    apply?: boolean;
     port?: string;
     id?: string;
     number?: string;
@@ -228,6 +231,10 @@ function parseArgs(args: string[]): {
     }
     if (arg === "--open") {
       options.open = true;
+      continue;
+    }
+    if (arg === "--apply") {
+      options.apply = true;
       continue;
     }
     if (arg === "--no-open") {

@@ -86,11 +86,15 @@ Then use short commands:
 /discover github study-forge
 /discover github
 /discover github --scope all
+/split-issue study-forge 12
+/split-issue study-forge 12 --apply
 /import 1 --list active
 /add "Progress Ledger構成図のラフを作る" --list active
 /add "READMEの導入を直す" --list active --repo study-forge
 /exit
 ```
+
+Issue splitting is dry-run by default. It reads the parent Issue from GitHub, uses unchecked checklist items as child Issue titles when available, and falls back to a basic requirement/design/implementation/verification split. Add `--apply` only when you want to create the child Issues on GitHub.
 
 In the interactive shell, `/report`, `/share`, and `/suggest` open the dashboard automatically on the matching tab and also print the generated file path. Use `--no-open` when you only want to generate the file:
 

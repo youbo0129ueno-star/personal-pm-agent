@@ -61,6 +61,7 @@ function config(): string {
     "dailyLogs": { "enabled": true, "days": 7 },
     "people": { "enabled": true },
     "repositories": { "enabled": true, "includeGitStatus": true },
+    "githubIssues": { "enabled": true, "limit": 50 },
     "previousReport": { "enabled": true }
   },
   "agentLogs": {

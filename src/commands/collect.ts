@@ -1,11 +1,26 @@
 import path from "node:path";
 import { basename } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { loadConfig, type PmAgentConfig } from "../core/config.js";
 import { today } from "../core/date.js";
 import { collectGitSummary } from "../core/git.js";
 import { listMarkdownFiles, listRecentMarkdownFiles, readTextIfExists, writeJson } from "../core/fs.js";
 import { extractBullets, extractChecklist, extractSection, parseFrontmatter, parseRepositoryLinks } from "../core/markdown.js";
 import type { CollectedItem, ContextPack } from "../core/types.js";
+
+const execFileAsync = promisify(execFile);
+
+type GitHubIssueItem = {
+  number?: number;
+  title?: string;
+  body?: string;
+  url?: string;
+  repo: string;
+  repository: string;
+  labels?: unknown[];
+  assignees?: unknown[];
+};
 
 export async function collectCommand(targetDir: string, date = today()): Promise<void> {
   const config = await loadConfig(targetDir);
@@ -23,6 +38,9 @@ export async function collectCommand(targetDir: string, date = today()): Promise
   const repositories = isEnabled(collectConfig.repositories)
     ? await collectRepositories(targetDir, rawItems, config)
     : [];
+  const githubIssues = isEnabled(collectConfig.githubIssues)
+    ? await collectGitHubIssues(targetDir, rawItems, config)
+    : [];
   const previousReport = isEnabled(collectConfig.previousReport) ? await collectPreviousReport(targetDir, date, rawItems) : null;
 
   const pack: ContextPack = {
@@ -36,6 +54,7 @@ export async function collectCommand(targetDir: string, date = today()): Promise
     people,
     recent_logs: recentLogs,
     repositories,
+    github_issues: githubIssues,
     previous_report: previousReport,
     collected_items: rawItems.length
   };
@@ -46,6 +65,63 @@ export async function collectCommand(targetDir: string, date = today()): Promise
     items: rawItems
   });
   await writeJson(path.join(outputDir, "context-pack.json"), pack);
+}
+
+async function collectGitHubIssues(
+  targetDir: string,
+  rawItems: CollectedItem[],
+  config: PmAgentConfig
+): Promise<GitHubIssueItem[]> {
+  const file = path.join(targetDir, "links/repositories.md");
+  const markdown = (await readTextIfExists(file)) ?? "";
+  if (!markdown.trim()) return [];
+
+  const limit = String(config.collect?.githubIssues?.limit ?? 50);
+  const links = parseRepositoryLinks(markdown).filter((repo) => repo.github || repo.full_name || repo.id?.includes("/"));
+  const issues: GitHubIssueItem[] = (
+    await Promise.all(
+      links.map(async (repo) => {
+        const fullName = repo.github ?? repo.full_name ?? repo.id;
+        try {
+          const { stdout } = await execFileAsync(
+            "gh",
+            [
+              "issue",
+              "list",
+              "--repo",
+              fullName,
+              "--state",
+              "open",
+              "--assignee",
+              "@me",
+              "--limit",
+              limit,
+              "--json",
+              "number,title,body,url,labels,assignees"
+            ],
+            { maxBuffer: 1024 * 1024 }
+          );
+          const parsed = JSON.parse(stdout) as Array<Record<string, unknown>>;
+          return parsed.map((issue) => ({ ...issue, repo: repo.id, repository: fullName }));
+        } catch {
+          return [];
+        }
+      })
+    )
+  ).flat();
+
+  for (const issue of issues) {
+    rawItems.push({
+      source: String(issue.repository),
+      type: "github_issue",
+      title: `Issue #${issue.number}: ${issue.title}`,
+      body: String(issue.body ?? ""),
+      url: typeof issue.url === "string" ? issue.url : undefined,
+      metadata: issue
+    });
+  }
+
+  return issues;
 }
 
 async function collectProject(file: string, rawItems: CollectedItem[]): Promise<Record<string, unknown>> {

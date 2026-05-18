@@ -22,7 +22,8 @@ export class MockAdapter implements ModelAdapter {
 }
 
 function buildMockReport(date: string, context: ContextPack): PMReport {
-  const projects = context.projects.map((project, index) => {
+  const sourceProjects = context.projects.length > 0 ? context.projects : githubIssuesAsProjects(context.github_issues ?? []);
+  const projects = sourceProjects.map((project, index) => {
     const id = String(project.id ?? `project-${index + 1}`);
     const name = String(project.name ?? id);
     const blockers = toStringArray(project.blockers);
@@ -138,6 +139,23 @@ function buildMockReport(date: string, context: ContextPack): PMReport {
       }
     ]
   };
+}
+
+function githubIssuesAsProjects(issues: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  if (issues.length === 0) return [];
+  return [
+    {
+      id: "github-issues",
+      name: "GitHub Issues",
+      status: "in_progress",
+      risk: "medium",
+      owner: "me",
+      current_status: "自分にassignされたopen Issueを確認対象にしています。",
+      active_tasks: issues.map((issue) => `Issue #${issue.number}: ${issue.title}`),
+      next_actions: issues.map((issue) => `Issue #${issue.number}: ${issue.title}`),
+      blockers: []
+    }
+  ];
 }
 
 function toStringArray(value: unknown): string[] {
