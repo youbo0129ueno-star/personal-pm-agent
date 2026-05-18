@@ -86,6 +86,7 @@ Then use short commands:
 /discover github
 /import 1 --list active
 /add "Progress Ledger構成図のラフを作る" --list active
+/add "READMEの導入を直す" --list active --repo study-forge
 /exit
 ```
 

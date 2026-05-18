@@ -19,6 +19,20 @@ test("task add appends a checklist item to the selected list", async () => {
   assert.match(active, /- \[ \] 新しいタスクを登録する/);
 });
 
+test("task add can attach repository metadata", async () => {
+  const ledgerDir = await mkdtemp(path.join(os.tmpdir(), "pm-agent-ledger-"));
+  await initCommand(ledgerDir);
+
+  await taskCommand(ledgerDir, "add", {
+    list: "active",
+    title: "READMEの導入を直す",
+    repo: "study-forge"
+  });
+
+  const active = await readFile(path.join(ledgerDir, "tasks/active.md"), "utf8");
+  assert.match(active, /- \[ \] READMEの導入を直す <!-- repo:study-forge -->/);
+});
+
 test("task move moves an item and marks done tasks checked", async () => {
   const ledgerDir = await mkdtemp(path.join(os.tmpdir(), "pm-agent-ledger-"));
   await initCommand(ledgerDir);

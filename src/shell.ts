@@ -70,7 +70,11 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
     return taskCommand(targetDir, "list", { list: args[0] });
   }
   if (command === "/add") {
-    return taskCommand(targetDir, "add", { list: parseOption(args, "--list") ?? "active", title: args.join(" ") });
+    return taskCommand(targetDir, "add", {
+      list: parseOption(args, "--list") ?? "active",
+      repo: parseOption(args, "--repo"),
+      title: args.filter((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--list" && args[index - 1] !== "--repo").join(" ")
+    });
   }
   if (command === "/move") {
     return taskCommand(targetDir, "move", {
@@ -127,6 +131,6 @@ function helpText(): string {
 /discover [repo-id]     Discover local task candidates from linked repos
 /discover github [repo-id]
 /import <number|id> [--list active]
-/add <title> [--list active]
+/add <title> [--list active] [--repo repo-id]
 /exit`;
 }

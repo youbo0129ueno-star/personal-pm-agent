@@ -65,7 +65,7 @@ export async function taskCommand(
   options: TaskCommandOptions
 ): Promise<string> {
   if (action === "add") {
-    return addTask(targetDir, assertTaskList(options.list ?? "active"), requireOption(options.title, "--title"));
+    return addTask(targetDir, assertTaskList(options.list ?? "active"), requireOption(options.title, "--title"), options.repo);
   }
 
   if (action === "move") {
@@ -92,7 +92,7 @@ export async function taskCommand(
   throw new Error(`Unknown task action: ${action ?? "(missing)"}. Expected add, move, list, discover, or import.`);
 }
 
-async function addTask(targetDir: string, list: TaskList, title: string): Promise<string> {
+async function addTask(targetDir: string, list: TaskList, title: string, repo?: string): Promise<string> {
   const file = taskFile(targetDir, list);
   const markdown = await readTaskFile(file, list);
   if (findTaskLine(markdown, title)) {
@@ -100,9 +100,10 @@ async function addTask(targetDir: string, list: TaskList, title: string): Promis
   }
 
   const marker = list === "done" ? "x" : " ";
-  const next = appendChecklistItem(markdown, `- [${marker}] ${title}`);
+  const metadata = repo ? ` <!-- repo:${repo} -->` : "";
+  const next = appendChecklistItem(markdown, `- [${marker}] ${title}${metadata}`);
   await writeFile(file, next, "utf8");
-  return `Added task to ${list}: ${title}`;
+  return `Added task to ${list}${repo ? ` for ${repo}` : ""}: ${title}`;
 }
 
 async function moveTask(targetDir: string, from: TaskList, to: TaskList, title: string): Promise<string> {
@@ -445,7 +446,7 @@ async function readTaskFile(file: string, list: TaskList): Promise<string> {
 }
 
 function normalizeTaskTitle(value: string): string {
-  return value.replace(/^- \[[ xX]\]\s*/, "").trim();
+  return value.replace(/^- \[[ xX]\]\s*/, "").replace(/\s*<!--\s*repo:[^>]+-->\s*$/, "").trim();
 }
 
 function taskFile(targetDir: string, list: TaskList): string {
