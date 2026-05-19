@@ -76,7 +76,14 @@ async function main(): Promise<void> {
 
   if (command === "morning") {
     await morningCommand(targetDir, parsed.options);
-    console.log(`Completed morning run: ${targetDir}`);
+    console.log(`Completed morning run: ${targetDir}
+
+Next:
+1. Open the dashboard: pm-agent dashboard ${targetDir}
+2. Review Today's Focus.
+3. Discover Issue candidates: pm-agent task ${targetDir} discover --source github
+4. Activate one candidate: pm-agent task ${targetDir} import --number 1 --list active
+5. Confirm active tasks: pm-agent task ${targetDir} list --list active`);
     return;
   }
 

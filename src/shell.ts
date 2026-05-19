@@ -1,7 +1,7 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { collectCommand } from "./commands/collect.js";
-import { openDashboard } from "./commands/dashboard.js";
+import { openDashboard, type DashboardTab } from "./commands/dashboard.js";
 import { morningCommand } from "./commands/morning.js";
 import { reportCommand } from "./commands/report.js";
 import { shareCommand } from "./commands/share.js";
@@ -43,28 +43,34 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
 
   if (command === "/help") return helpText();
   if (command === "/status") return statusCommand(targetDir);
+  if (command === "/dashboard") {
+    const tab = parseDashboardTab(args[0] ?? "status");
+    const dashboardUrl = await openDashboard(targetDir, tab);
+    return `Opened dashboard:\n- Dashboard: ${dashboardUrl}`;
+  }
   if (command === "/collect") {
     await collectCommand(targetDir);
-    return "Collected context.";
+    return `Collected context.\n\nNext:\n- Run /report to generate today's PM report.\n- Run /morning to run collect, report, share, and suggest together.`;
   }
   if (command === "/report") {
     const result = await reportCommand(targetDir, { adapter: parseOption(args, "--adapter") ?? "background-agent" });
     const dashboardUrl = await openDashboardUnlessDisabled(args, targetDir, "daily");
-    return `Generated PM report${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}\n- JSON: ${result.jsonPath}`;
+    return `Generated PM report${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}\n- JSON: ${result.jsonPath}\n\nNext:\n- Review Today's Focus in the dashboard.\n- Run /discover github to find GitHub Issues you can activate.\n- Run /import <number> --list active to add an Issue candidate to active tasks.`;
   }
   if (command === "/share") {
     const result = await shareCommand(targetDir);
     const dashboardUrl = await openDashboardUnlessDisabled(args, targetDir, "share");
-    return `Generated share report${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}`;
+    return `Generated share report${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}\n\nNext:\n- Use Copy View in the dashboard to paste the share message elsewhere.`;
   }
   if (command === "/suggest") {
     const result = await suggestCommand(targetDir);
     const dashboardUrl = await openDashboardUnlessDisabled(args, targetDir, "suggestions");
-    return `Generated suggestions${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}`;
+    return `Generated suggestions${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n- Markdown: ${result.markdownPath}\n\nNext:\n- Review suggested ledger updates before editing task files.\n- Run /dashboard tasks to check the current active/waiting/backlog state.`;
   }
   if (command === "/morning") {
     await morningCommand(targetDir, { adapter: parseOption(args, "--adapter") ?? "background-agent" });
-    return "Completed morning run.";
+    const dashboardUrl = await openDashboardUnlessDisabled(args, targetDir, "daily");
+    return `Completed morning run${dashboardUrl ? " and opened dashboard" : ""}:\n- Dashboard: ${dashboardUrl ?? "(not opened)"}\n\nNext:\n1. Read Today's Focus in the dashboard.\n2. Run /discover github to list open Issues assigned to you across registered repos.\n3. Run /discover github <repo-id> if you want to narrow it down.\n4. Run /import <number> --list active to activate an Issue candidate.\n5. Run /tasks active or /dashboard tasks to confirm active tasks.\n6. If an Issue is too large, run /split-issue <repo-id> <issue-number> first.`;
   }
   if (command === "/tasks") {
     return taskCommand(targetDir, "list", { list: args[0] });
@@ -87,7 +93,8 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
     const positional = args.filter((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--repo" && args[index - 1] !== "--source" && args[index - 1] !== "--scope");
     const source = positional[0] === "github" || positional[0] === "local" ? positional[0] : parseOption(args, "--source") ?? "local";
     const repo = positional[0] === "github" || positional[0] === "local" ? positional[1] : parseOption(args, "--repo") ?? positional[0];
-    return taskCommand(targetDir, "discover", { repo, source, scope: parseOption(args, "--scope") ?? "mine" });
+    const result = await taskCommand(targetDir, "discover", { repo, source, scope: parseOption(args, "--scope") ?? "mine" });
+    return `${result}\n\nNext:\n- Run /import <number> --list active to activate one candidate.\n- Run /import <id> --list active if you prefer the candidate id.\n- Run /dashboard tasks after importing.`;
   }
   if (command === "/split-issue") {
     const positional = args.filter((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--repo" && args[index - 1] !== "--number");
@@ -98,11 +105,12 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
     });
   }
   if (command === "/import") {
-    return taskCommand(targetDir, "import", {
+    const result = await taskCommand(targetDir, "import", {
       number: args[0] && /^\d+$/.test(args[0]) ? args[0] : undefined,
       id: args[0] && !/^\d+$/.test(args[0]) ? args[0] : undefined,
       list: parseOption(args, "--list") ?? "active"
     });
+    return `${result}\n\nNext:\n- Run /tasks active to confirm it is active.\n- Run /dashboard tasks to view it in the browser.\n- Run /morning again if you want today's report to include the activated task.`;
   }
 
   return `Unknown command: ${command}. Type /help.`;
@@ -118,7 +126,13 @@ function tokenize(line: string): string[] {
   return matches.map((match) => match.replace(/^["']|["']$/g, ""));
 }
 
-async function openDashboardUnlessDisabled(args: string[], targetDir: string, tab: "daily" | "share" | "suggestions"): Promise<string | null> {
+function parseDashboardTab(value: string): DashboardTab {
+  const tabs: DashboardTab[] = ["status", "daily", "share", "suggestions", "tasks", "repositories", "files"];
+  if (tabs.includes(value as DashboardTab)) return value as DashboardTab;
+  throw new Error(`Unknown dashboard tab: ${value}. Expected ${tabs.join(", ")}.`);
+}
+
+async function openDashboardUnlessDisabled(args: string[], targetDir: string, tab: DashboardTab): Promise<string | null> {
   if (args.includes("--no-open")) return null;
   try {
     return await openDashboard(targetDir, tab);
@@ -132,6 +146,7 @@ function helpText(): string {
 /status                 Show today's report summary
 /morning [--adapter background-agent|mock]
 /collect
+/dashboard [status|daily|share|suggestions|tasks|repositories|files]
 /report [--adapter background-agent|mock] [--no-open]
 /share [--no-open]
 /suggest [--no-open]

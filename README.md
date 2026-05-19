@@ -85,6 +85,9 @@ Then use short commands:
 ```txt
 /status
 /morning
+/dashboard daily
+/dashboard tasks
+/dashboard repositories
 /tasks active
 /discover personal-pm-agent
 /discover github personal-pm-agent
