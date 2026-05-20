@@ -153,6 +153,8 @@ Usage:
   pm-agent repo [ledger-dir] activate --repo repo-id
   pm-agent repo [ledger-dir] deactivate --repo repo-id
   pm-agent repo [ledger-dir] active
+  pm-agent repo [ledger-dir] list
+  pm-agent repo [ledger-dir] register --repo repo-id
   pm-agent shell [ledger-dir]
 `);
 }

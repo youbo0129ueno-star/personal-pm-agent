@@ -206,10 +206,17 @@ In the shell:
 ```txt
 /activate-repo study-forge
 /active-repos
+/repos
 /understand-active
 ```
 
 Explicitly active repositories are stored in `context/active-repositories.md`.
+If `/activate-repo <repo-id>` is not already in `links/repositories.md`, pm-agent tries to resolve it from GitHub and register it first. You can also register without activating:
+
+```txt
+/register-repo nodist
+/repos
+```
 
 `understand-active` does not clone repositories. For each active repository it resolves the local repository in this order:
 

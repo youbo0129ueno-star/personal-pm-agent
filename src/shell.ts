@@ -63,11 +63,17 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
   if (command === "/activate-repo") {
     return repositoryCommand(targetDir, "activate", { repo: args[0] });
   }
+  if (command === "/register-repo") {
+    return repositoryCommand(targetDir, "register", { repo: args[0] });
+  }
   if (command === "/deactivate-repo") {
     return repositoryCommand(targetDir, "deactivate", { repo: args[0] });
   }
   if (command === "/active-repos") {
     return repositoryCommand(targetDir, "active", {});
+  }
+  if (command === "/repos") {
+    return repositoryCommand(targetDir, "list", {});
   }
   if (command === "/collect") {
     await collectCommand(targetDir);
@@ -171,8 +177,10 @@ function helpText(): string {
 /understand [repo-dir] [--refresh]
 /understand-active [--refresh] [--no-github]
 /activate-repo <repo-id>
+/register-repo <repo-id>
 /deactivate-repo <repo-id>
 /active-repos
+/repos
 /report [--adapter background-agent|mock] [--no-open]
 /share [--no-open]
 /suggest [--no-open]
