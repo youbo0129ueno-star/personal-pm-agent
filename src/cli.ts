@@ -4,6 +4,7 @@ import { dashboardCommand } from "./commands/dashboard.js";
 import { initCommand } from "./commands/init.js";
 import { morningCommand } from "./commands/morning.js";
 import { reportCommand } from "./commands/report.js";
+import { repositoryCommand } from "./commands/repository.js";
 import { shareCommand } from "./commands/share.js";
 import { setupCommand } from "./commands/setup.js";
 import { suggestCommand } from "./commands/suggest.js";
@@ -118,6 +119,12 @@ Next:
     return;
   }
 
+  if (command === "repo") {
+    const message = await repositoryCommand(targetDir, parsed.taskAction, parsed.options);
+    console.log(message);
+    return;
+  }
+
   console.error(`Unknown command: ${command}`);
   printHelp();
   process.exitCode = 1;
@@ -143,6 +150,9 @@ Usage:
   pm-agent task [ledger-dir] discover [--source local|github] [--repo repo-id] [--scope mine|all]
   pm-agent task [ledger-dir] import --number 1 --list active
   pm-agent task [ledger-dir] split-issue --repo repo-id --number 123 [--apply]
+  pm-agent repo [ledger-dir] activate --repo repo-id
+  pm-agent repo [ledger-dir] deactivate --repo repo-id
+  pm-agent repo [ledger-dir] active
   pm-agent shell [ledger-dir]
 `);
 }

@@ -7,6 +7,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { expandHome } from "../core/git.js";
 import { ensureDir, writeJson } from "../core/fs.js";
 import { parseRepositoryLinks } from "../core/markdown.js";
+import { readExplicitActiveRepositoryIds } from "./repository.js";
 import { understandCommand } from "./understand.js";
 
 const execFileAsync = promisify(execFile);
@@ -32,10 +33,12 @@ export async function understandActiveCommand(ledgerDir: string, options: Unders
       "No active repositories found.",
       "",
       "Active means:",
+      "- explicitly activated in context/active-repositories.md",
       "- referenced by tasks/active.md with <!-- repo:<repo-id> -->",
       "- or has an open GitHub Issue assigned to you",
       "",
       "Next:",
+      "- Run /activate-repo <repo-id>",
       "- Run /discover github <repo-id>",
       "- Run /import <number> --list active",
       "- Or add a task with /add \"task\" --list active --repo <repo-id>"
@@ -109,6 +112,11 @@ async function findActiveRepositories(
 ): Promise<ActiveRepository[]> {
   const byId = new Map(repositories.map((repo) => [repo.id, repo]));
   const active = new Map<string, ActiveRepository>();
+
+  for (const repoId of await readExplicitActiveRepositoryIds(ledgerDir)) {
+    const repo = byId.get(repoId);
+    if (repo) active.set(repoId, { repo, reason: "context/active-repositories.md" });
+  }
 
   for (const repoId of await repoIdsFromActiveTasks(ledgerDir)) {
     const repo = byId.get(repoId);

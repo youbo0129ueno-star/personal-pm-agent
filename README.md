@@ -191,7 +191,25 @@ npm run pm-agent -- understand-active ../progress-ledger --refresh
 npm run pm-agent -- understand-active ../progress-ledger --no-github
 ```
 
-Active repositories are detected from `tasks/active.md` entries with `<!-- repo:<repo-id> -->` and, unless `--no-github` is passed, registered repositories that have open GitHub Issues assigned to you.
+Active repositories are detected from explicit repository activation, `tasks/active.md` entries with `<!-- repo:<repo-id> -->`, and, unless `--no-github` is passed, registered repositories that have open GitHub Issues assigned to you.
+
+To activate a repository even when it has no Issue yet:
+
+```sh
+npm run pm-agent -- repo ../progress-ledger activate --repo study-forge
+npm run pm-agent -- repo ../progress-ledger active
+npm run pm-agent -- understand-active ../progress-ledger
+```
+
+In the shell:
+
+```txt
+/activate-repo study-forge
+/active-repos
+/understand-active
+```
+
+Explicitly active repositories are stored in `context/active-repositories.md`.
 
 `understand-active` does not clone repositories. For each active repository it resolves the local repository in this order:
 

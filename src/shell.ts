@@ -4,6 +4,7 @@ import { collectCommand } from "./commands/collect.js";
 import { openDashboard, type DashboardTab } from "./commands/dashboard.js";
 import { morningCommand } from "./commands/morning.js";
 import { reportCommand } from "./commands/report.js";
+import { repositoryCommand } from "./commands/repository.js";
 import { shareCommand } from "./commands/share.js";
 import { statusCommand } from "./commands/status.js";
 import { suggestCommand } from "./commands/suggest.js";
@@ -58,6 +59,15 @@ async function runShellCommand(targetDir: string, line: string): Promise<string>
   if (command === "/understand-active") {
     const result = await understandActiveCommand(targetDir, { refresh: args.includes("--refresh"), github: !args.includes("--no-github") });
     return `${result}\n\nNext:\n- Run /dashboard repositories to inspect active repo understanding.`;
+  }
+  if (command === "/activate-repo") {
+    return repositoryCommand(targetDir, "activate", { repo: args[0] });
+  }
+  if (command === "/deactivate-repo") {
+    return repositoryCommand(targetDir, "deactivate", { repo: args[0] });
+  }
+  if (command === "/active-repos") {
+    return repositoryCommand(targetDir, "active", {});
   }
   if (command === "/collect") {
     await collectCommand(targetDir);
@@ -160,6 +170,9 @@ function helpText(): string {
 /dashboard [status|daily|share|suggestions|tasks|repositories|files]
 /understand [repo-dir] [--refresh]
 /understand-active [--refresh] [--no-github]
+/activate-repo <repo-id>
+/deactivate-repo <repo-id>
+/active-repos
 /report [--adapter background-agent|mock] [--no-open]
 /share [--no-open]
 /suggest [--no-open]
